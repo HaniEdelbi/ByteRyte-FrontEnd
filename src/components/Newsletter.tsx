@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { ArrowRight, Shield, Check } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { showNotification } from "@/hooks/use-notification";
 
 const Newsletter = () => {
   const [email, setEmail] = useState("");
@@ -11,7 +11,7 @@ const Newsletter = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      toast({
+      showNotification({
         title: "Please enter your email address",
         variant: "destructive"
       });
@@ -24,7 +24,7 @@ const Newsletter = () => {
       setIsSubmitted(true);
       setEmail("");
       setIsSubmitting(false);
-      toast({
+      showNotification({
         title: "Welcome to ByteRyte!",
         description: "Check your email to get started."
       });
