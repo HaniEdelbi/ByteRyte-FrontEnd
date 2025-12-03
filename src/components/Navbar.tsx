@@ -2,10 +2,13 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Menu, X, Shield } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,6 +36,30 @@ const Navbar = () => {
     }
   };
 
+  const handleFeaturesClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.pathname !== '/') {
+      navigate('/', { state: { scrollToFeatures: true } });
+    } else {
+      const featuresSection = document.getElementById('features');
+      featuresSection?.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+      document.body.style.overflow = '';
+    }
+  };
+
+  useEffect(() => {
+    if (location.state?.scrollToFeatures) {
+      setTimeout(() => {
+        const featuresSection = document.getElementById('features');
+        featuresSection?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [location]);
+
+
   return (
     <header
       className={cn(
@@ -43,13 +70,9 @@ const Navbar = () => {
       )}
     >
       <div className="container flex items-center justify-between px-4 sm:px-6 lg:px-8">
-        <a 
-          href="#" 
+        <Link 
+          to="/" 
           className="flex items-center space-x-2"
-          onClick={(e) => {
-            e.preventDefault();
-            scrollToTop();
-          }}
           aria-label="ByteRyte"
         >
           <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
@@ -58,22 +81,16 @@ const Navbar = () => {
           <span className="text-xl font-bold text-foreground" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
             ByteRyte
           </span>
-        </a>
+        </Link>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
-          <a 
-            href="#" 
-            className="nav-link"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToTop();
-            }}
-          >
+          <Link to="/" className="nav-link">
             Home
-          </a>
-          <a href="#features" className="nav-link">Features</a>
-          <a href="#pricing" className="nav-link">Pricing</a>
+          </Link>
+          <a href="#features" onClick={handleFeaturesClick} className="nav-link cursor-pointer">Features</a>
+          <Link to="/pricing" className="nav-link">Pricing</Link>
+          <Link to="/test" className="nav-link">Challenge</Link>
           <a href="#get-started" className="button-primary text-sm py-2 px-4">
             Get Started
           </a>
@@ -95,30 +112,25 @@ const Navbar = () => {
         isMenuOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full pointer-events-none"
       )}>
         <nav className="flex flex-col space-y-6 items-center mt-8">
-          <a 
-            href="#" 
-            className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToTop();
-              setIsMenuOpen(false);
-              document.body.style.overflow = '';
-            }}
-          >
-            Home
-          </a>
-          <a 
-            href="#features" 
+          <Link 
+            to="/"
             className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
             onClick={() => {
               setIsMenuOpen(false);
               document.body.style.overflow = '';
             }}
           >
+            Home
+          </Link>
+          <a 
+            href="#features" 
+            className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors cursor-pointer" 
+            onClick={handleFeaturesClick}
+          >
             Features
           </a>
-          <a 
-            href="#pricing" 
+          <Link 
+            to="/pricing" 
             className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
             onClick={() => {
               setIsMenuOpen(false);
@@ -126,7 +138,17 @@ const Navbar = () => {
             }}
           >
             Pricing
-          </a>
+          </Link>
+          <Link 
+            to="/test" 
+            className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
+            onClick={() => {
+              setIsMenuOpen(false);
+              document.body.style.overflow = '';
+            }}
+          >
+            Challenge
+          </Link>
           <a 
             href="#get-started" 
             className="button-primary w-full text-center mt-4" 

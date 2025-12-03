@@ -14,6 +14,9 @@ export interface RegisterData {
   email: string;
   password: string;
   name: string;
+  passwordVerifier?: string;
+  encryptedVaultKey?: string;
+  deviceFingerprint?: string;
 }
 
 export interface AuthResponse {
@@ -30,6 +33,59 @@ export interface User {
   email: string;
   name: string;
   createdAt: string;
+}
+
+/**
+ * Generate password verifier for zero-knowledge authentication
+ * This is a simplified version - in production, use proper SRP or similar protocol
+ */
+async function generatePasswordVerifier(password: string, email: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + email);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Generate encrypted vault key
+ * This is a simplified version - in production, use proper key derivation
+ */
+async function generateEncryptedVaultKey(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + '_vault_key');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Generate device fingerprint
+ * Creates a unique identifier for the device/browser
+ */
+function generateDeviceFingerprint(): string {
+  const navigator = window.navigator;
+  const screen = window.screen;
+  
+  const fingerprint = [
+    navigator.userAgent,
+    navigator.language,
+    screen.colorDepth,
+    screen.width + 'x' + screen.height,
+    new Date().getTimezoneOffset(),
+    !!window.sessionStorage,
+    !!window.localStorage,
+  ].join('|');
+  
+  // Create a simple hash of the fingerprint
+  let hash = 0;
+  for (let i = 0; i < fingerprint.length; i++) {
+    const char = fingerprint.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  return Math.abs(hash).toString(16);
 }
 
 /**
@@ -52,7 +108,23 @@ export const authService = {
    * Register new user
    */
   async register(data: RegisterData): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/auth/register', data);
+    // Generate required zero-knowledge fields if not provided
+    const passwordVerifier = data.passwordVerifier || await generatePasswordVerifier(data.password, data.email);
+    const encryptedVaultKey = data.encryptedVaultKey || await generateEncryptedVaultKey(data.password);
+    const deviceFingerprint = data.deviceFingerprint || generateDeviceFingerprint();
+    
+    const registrationData = {
+      email: data.email,
+      password: data.password,
+      name: data.name,
+      passwordVerifier,
+      encryptedVaultKey,
+      deviceFingerprint,
+    };
+    
+    console.log('Registration data being sent:', registrationData);
+    
+    const response = await api.post<AuthResponse>('/auth/register', registrationData);
     
     // Store token
     auth.setToken(response.token);
