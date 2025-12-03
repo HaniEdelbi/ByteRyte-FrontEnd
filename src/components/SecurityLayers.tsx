@@ -103,7 +103,7 @@ const SecurityLayers = () => {
                 ...cardStyle,
                 zIndex: 10,
                 transform: `translateY(${isFirstCardVisible ? '90px' : '200px'}) scale(0.9)`,
-                opacity: isFirstCardVisible ? 0.9 : 0
+                opacity: isFirstCardVisible ? 1 : 0
               }}
             >
               <div className="absolute inset-0 z-0 bg-gradient-to-br from-primary to-primary/70"></div>
