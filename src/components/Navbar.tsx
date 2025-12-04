@@ -91,9 +91,14 @@ const Navbar = () => {
           <a href="#features" onClick={handleFeaturesClick} className="nav-link cursor-pointer">Features</a>
           <Link to="/pricing" className="nav-link">Pricing</Link>
           <Link to="/test" className="nav-link">Challenge</Link>
-          <a href="#get-started" className="button-primary text-sm py-2 px-4">
-            Get Started
-          </a>
+          <div className="flex items-center space-x-3">
+            <Link to="/login" className="nav-link">
+              Sign Up
+            </Link>
+            <Link to="/login" className="button-primary text-sm py-2 px-4">
+              Get Started
+            </Link>
+          </div>
         </nav>
 
         {/* Mobile menu button */}
@@ -149,8 +154,18 @@ const Navbar = () => {
           >
             Challenge
           </Link>
-          <a 
-            href="#get-started" 
+          <Link 
+            to="/login" 
+            className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
+            onClick={() => {
+              setIsMenuOpen(false);
+              document.body.style.overflow = '';
+            }}
+          >
+            Sign Up
+          </Link>
+          <Link 
+            to="/login" 
             className="button-primary w-full text-center mt-4" 
             onClick={() => {
               setIsMenuOpen(false);
@@ -158,7 +173,7 @@ const Navbar = () => {
             }}
           >
             Get Started
-          </a>
+          </Link>
         </nav>
       </div>
     </header>
