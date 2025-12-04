@@ -51,11 +51,6 @@ ByteRyte-FrontEnd/
 │   │   │   ├── tooltip.tsx          # Tooltips
 │   │   │   └── sonner.tsx           # Toast library integration
 │   │   │
-│   │   ├── examples/                # Example implementations
-│   │   │   ├── LoginExample.tsx     # Authentication example
-│   │   │   ├── PasswordListExample.tsx
-│   │   │   └── README.md            # Examples documentation
-│   │   │
 │   │   ├── Features.tsx             # Features section with expandable cards
 │   │   ├── Footer.tsx               # Site footer
 │   │   ├── Hero.tsx                 # Landing page hero section
@@ -67,6 +62,8 @@ ByteRyte-FrontEnd/
 │   │
 │   ├── pages/                       # Page components
 │   │   ├── Index.tsx                # Landing page
+│   │   ├── Pricing.tsx              # Pricing page
+│   │   ├── TestBackend.tsx          # Backend testing & demo page
 │   │   └── NotFound.tsx             # 404 error page
 │   │
 │   ├── hooks/                       # Custom React hooks

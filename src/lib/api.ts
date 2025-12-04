@@ -3,8 +3,30 @@
  * Handles all communication with the ByteRyte backend
  */
 
-// API Base URL - Update this with your backend URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Automatically detect API URL based on current hostname
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  
+  // If explicitly set in environment, use that
+  if (envUrl) {
+    return envUrl;
+  }
+  
+  // Auto-detect based on window location
+  const hostname = window.location.hostname;
+  
+  // If accessing via localhost, use localhost backend
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000/api';
+  }
+  
+  // If accessing via IP address, use same IP for backend
+  return `http://${hostname}:3000/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+console.log('API Base URL:', API_BASE_URL);
 
 /**
  * Custom error class for API errors
