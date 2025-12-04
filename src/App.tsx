@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import TestBackend from "@/pages/TestBackend";
 import Pricing from "@/pages/Pricing";
 import Login from "@/pages/Login";
+import Sessions from "@/pages/Sessions";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/sessions" element={<Sessions />} />
           <Route path="/test" element={<TestBackend />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

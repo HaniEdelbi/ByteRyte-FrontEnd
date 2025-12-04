@@ -3,12 +3,16 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Menu, X, Shield } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useCurrentUser, useLogout } from "@/hooks/useAuth";
+import ProfileDropdown from "./ProfileDropdown";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: user } = useCurrentUser();
+  const { mutate: logout } = useLogout();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,6 +52,21 @@ const Navbar = () => {
       setIsMenuOpen(false);
       document.body.style.overflow = '';
     }
+  };
+
+  const handleLogout = () => {
+    logout(undefined, {
+      onSuccess: () => {
+        setIsMenuOpen(false);
+        document.body.style.overflow = '';
+        navigate('/');
+      },
+      onError: () => {
+        setIsMenuOpen(false);
+        document.body.style.overflow = '';
+        navigate('/');
+      }
+    });
   };
 
   useEffect(() => {
@@ -91,14 +110,19 @@ const Navbar = () => {
           <a href="#features" onClick={handleFeaturesClick} className="nav-link cursor-pointer">Features</a>
           <Link to="/pricing" className="nav-link">Pricing</Link>
           <Link to="/test" className="nav-link">Challenge</Link>
-          <div className="flex items-center space-x-3">
-            <Link to="/login" className="nav-link">
-              Sign Up
-            </Link>
-            <Link to="/login" className="button-primary text-sm py-2 px-4">
-              Get Started
-            </Link>
-          </div>
+          
+          {user ? (
+            <ProfileDropdown />
+          ) : (
+            <div className="flex items-center space-x-3">
+              <Link to="/login" className="nav-link">
+                Sign Up
+              </Link>
+              <Link to="/login" className="button-primary text-sm py-2 px-4">
+                Get Started
+              </Link>
+            </div>
+          )}
         </nav>
 
         {/* Mobile menu button */}
@@ -154,26 +178,86 @@ const Navbar = () => {
           >
             Challenge
           </Link>
-          <Link 
-            to="/login" 
-            className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
-            onClick={() => {
-              setIsMenuOpen(false);
-              document.body.style.overflow = '';
-            }}
-          >
-            Sign Up
-          </Link>
-          <Link 
-            to="/login" 
-            className="button-primary w-full text-center mt-4" 
-            onClick={() => {
-              setIsMenuOpen(false);
-              document.body.style.overflow = '';
-            }}
-          >
-            Get Started
-          </Link>
+
+          {user ? (
+            <>
+              {/* User Info Section */}
+              <div className="w-full py-4 px-6 bg-muted/30 rounded-xl border border-border">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                    {user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{user.name || 'User'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email || ''}</p>
+                  </div>
+                </div>
+              </div>
+
+              <Link 
+                to="/vault" 
+                className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  document.body.style.overflow = '';
+                }}
+              >
+                My Vault
+              </Link>
+
+              <Link 
+                to="/settings" 
+                className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  document.body.style.overflow = '';
+                }}
+              >
+                Settings
+              </Link>
+
+              <Link 
+                to="/profile" 
+                className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  document.body.style.overflow = '';
+                }}
+              >
+                Profile
+              </Link>
+
+              <button 
+                onClick={handleLogout}
+                className="button-destructive w-full text-center mt-4"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link 
+                to="/login" 
+                className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  document.body.style.overflow = '';
+                }}
+              >
+                Sign Up
+              </Link>
+              <Link 
+                to="/login" 
+                className="button-primary w-full text-center mt-4" 
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  document.body.style.overflow = '';
+                }}
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </nav>
       </div>
     </header>

@@ -163,6 +163,10 @@
   .button-secondary {
     @apply bg-transparent border-2 border-border hover:border-primary text-foreground hover:text-primary font-semibold py-3 px-6 rounded-xl transition-all duration-300;
   }
+
+  .button-destructive {
+    @apply bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98];
+  }
   
   .nav-link {
     @apply relative text-muted-foreground hover:text-primary py-2 transition-colors duration-300 font-medium after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary after:transition-all hover:after:w-full;

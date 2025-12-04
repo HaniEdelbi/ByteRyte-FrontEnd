@@ -30,7 +30,10 @@ const Login = () => {
         { email, password, name: name || email.split('@')[0] },
         {
           onSuccess: () => {
-            navigate('/'); // Redirect to home after successful registration
+            // Small delay to ensure cache is updated before navigation
+            setTimeout(() => {
+              navigate('/');
+            }, 100);
           },
           onError: (error: any) => {
             setError(error.message || 'Registration failed. Please try again.');
@@ -43,7 +46,10 @@ const Login = () => {
         { email, password },
         {
           onSuccess: () => {
-            navigate('/'); // Redirect to home after successful login
+            // Small delay to ensure cache is updated before navigation
+            setTimeout(() => {
+              navigate('/');
+            }, 100);
           },
           onError: (error: any) => {
             setError(error.message || 'Login failed. Please check your credentials.');

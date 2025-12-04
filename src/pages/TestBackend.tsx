@@ -1,10 +1,39 @@
 /**
  * Backend Test Page
- * Test authentication and password management integration
+ * Test authenticatio  const fetchVaultId = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const apiUrl = getApiUrl();
+      console.log('[TestBackend] Fetching vaults from:', `${apiUrl}/vaults`);
+      
+      const response = await fetch(`${apiUrl}/vaults`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();word management integration
  */
 
 import { useState, useEffect } from "react";
 import { useLogin, useRegister } from "@/hooks/useAuth";
+
+// Helper function to get API URL (same logic as api.ts)
+const getApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return envUrl;
+  
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000/api';
+  }
+  return `http://${hostname}:3000/api`;
+};
 
 const TestBackend = () => {
   const [email, setEmail] = useState("");
@@ -36,8 +65,10 @@ const TestBackend = () => {
 
   const fetchVaultId = async () => {
     try {
+      const apiUrl = getApiUrl();
+      console.log('Fetching vaults from:', `${apiUrl}/vaults`);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/vaults`, {
+      const response = await fetch(`${apiUrl}/vaults`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -62,8 +93,10 @@ const TestBackend = () => {
     try {
       setPasswordsLoading(true);
       const token = localStorage.getItem('authToken');
-      console.log('Fetching passwords for vault:', vault);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/passwords?vaultId=${vault}`, {
+      const apiUrl = getApiUrl();
+      console.log('[TestBackend] Fetching passwords from:', `${apiUrl}/passwords?vaultId=${vault}`);
+      
+      const response = await fetch(`${apiUrl}/passwords?vaultId=${vault}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -135,8 +168,10 @@ const TestBackend = () => {
       };
       console.log('Request body:', requestBody);
 
+      const apiUrl = getApiUrl();
+      console.log('Creating password at:', `${apiUrl}/passwords`);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/passwords`, {
+      const response = await fetch(`${apiUrl}/passwords`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -428,7 +463,7 @@ const TestBackend = () => {
             <p>
               <span className="font-medium">Backend URL:</span>{" "}
               <code className="bg-primary/10 px-2 py-1 rounded">
-                {import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}
+                {getApiUrl()}
               </code>
             </p>
             <p>

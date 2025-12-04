@@ -185,18 +185,28 @@ export const authService = {
    */
   async logout(): Promise<void> {
     try {
+      // Try to call logout endpoint, but don't fail if it doesn't work
       await api.post('/auth/logout');
+    } catch (error) {
+      // Ignore logout endpoint errors - we'll clear local data anyway
+      console.log('[authService] Logout endpoint error (ignoring):', error);
     } finally {
-      // Always remove token, even if request fails
+      // Always remove token and user data, even if request fails
       auth.removeToken();
+      localStorage.removeItem('currentUser');
     }
   },
 
   /**
-   * Get current user profile
+   * Get current user profile from localStorage
+   * (Backend doesn't have /auth/me endpoint)
    */
-  async getCurrentUser(): Promise<User> {
-    return api.get<User>('/auth/me');
+  async getCurrentUser(): Promise<User | null> {
+    const cachedUser = localStorage.getItem('currentUser');
+    if (cachedUser) {
+      return JSON.parse(cachedUser);
+    }
+    return null;
   },
 
   /**

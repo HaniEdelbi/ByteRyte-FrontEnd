@@ -13,9 +13,24 @@ import { showNotification } from '@/hooks/use-notification';
 export function useCurrentUser() {
   return useQuery({
     queryKey: ['user', 'current'],
-    queryFn: () => authService.getCurrentUser(),
-    enabled: authService.isAuthenticated(),
+    queryFn: async () => {
+      // Only check if authenticated, don't fetch from backend
+      const isAuth = authService.isAuthenticated();
+      
+      if (!isAuth) {
+        return null;
+      }
+      
+      // Try to get user from localStorage if available
+      const cachedUser = localStorage.getItem('currentUser');
+      if (cachedUser) {
+        return JSON.parse(cachedUser);
+      }
+      
+      return null;
+    },
     retry: false,
+    staleTime: Infinity, // User data doesn't change unless they logout/login
   });
 }
 
@@ -28,7 +43,10 @@ export function useLogin() {
   return useMutation({
     mutationFn: (credentials: LoginCredentials) => authService.login(credentials),
     onSuccess: (data) => {
-      // Update user cache
+      // Store user in localStorage
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      
+      // Update user cache immediately - this will trigger re-renders
       queryClient.setQueryData(['user', 'current'], data.user);
       
       showNotification({
@@ -55,7 +73,10 @@ export function useRegister() {
   return useMutation({
     mutationFn: (data: RegisterData) => authService.register(data),
     onSuccess: (data) => {
-      // Update user cache
+      // Store user in localStorage
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      
+      // Update user cache immediately - this will trigger re-renders
       queryClient.setQueryData(['user', 'current'], data.user);
       
       showNotification({
@@ -82,7 +103,20 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => authService.logout(),
     onSuccess: () => {
+      // Clear user from localStorage
+      localStorage.removeItem('currentUser');
+      
       // Clear all cached data
+      queryClient.clear();
+      
+      showNotification({
+        title: 'Logged out',
+        description: 'You have been successfully logged out.',
+      });
+    },
+    onError: () => {
+      // Even on error, clear local data
+      localStorage.removeItem('currentUser');
       queryClient.clear();
       
       showNotification({
