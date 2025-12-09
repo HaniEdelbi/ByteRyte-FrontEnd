@@ -1,6 +1,7 @@
 import { useDevices, useRevokeDevice } from '../hooks/useSession';
 import { Monitor, Smartphone, Tablet, Shield, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import { toast } from 'sonner';
 
 /**
  * Parse user agent to determine device type and browser info
@@ -72,7 +73,7 @@ export default function Sessions() {
       try {
         await revokeDevice.mutateAsync(deviceId);
       } catch (error) {
-        alert(`Failed to revoke device: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Failed to revoke device: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
   };

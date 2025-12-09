@@ -4,11 +4,17 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { passwordService, CreatePasswordData, UpdatePasswordData } from '@/services/passwordService';
+import { 
+  passwordService, 
+  CreatePasswordInput, 
+  UpdatePasswordInput,
+  type Password,
+  type DecryptedPasswordData 
+} from '@/services/passwordService';
 import { showNotification } from '@/hooks/use-notification';
 
 /**
- * Hook to get all passwords across all vaults
+ * Hook to get all passwords across all vaults (encrypted)
  */
 export function usePasswords() {
   return useQuery({
@@ -18,7 +24,18 @@ export function usePasswords() {
 }
 
 /**
- * Hook to get a single password
+ * Hook to get all passwords with decrypted data
+ */
+export function usePasswordsDecrypted(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['passwords', 'decrypted'],
+    queryFn: () => passwordService.getAllDecrypted(),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+/**
+ * Hook to get a single password (encrypted)
  */
 export function usePassword(id: string) {
   return useQuery({
@@ -29,13 +46,24 @@ export function usePassword(id: string) {
 }
 
 /**
- * Hook to create a password
+ * Hook to get a single password with decrypted data
+ */
+export function usePasswordDecrypted(id: string) {
+  return useQuery({
+    queryKey: ['passwords', id, 'decrypted'],
+    queryFn: () => passwordService.getByIdDecrypted(id),
+    enabled: !!id,
+  });
+}
+
+/**
+ * Hook to create a password (auto-encrypts)
  */
 export function useCreatePassword() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreatePasswordData) => passwordService.create(data),
+    mutationFn: (data: CreatePasswordInput) => passwordService.create(data),
     onSuccess: () => {
       // Invalidate and refetch passwords
       queryClient.invalidateQueries({ queryKey: ['passwords'] });
@@ -56,13 +84,13 @@ export function useCreatePassword() {
 }
 
 /**
- * Hook to update a password
+ * Hook to update a password (auto-encrypts)
  */
 export function useUpdatePassword() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdatePasswordData }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdatePasswordInput }) =>
       passwordService.update(id, data),
     onSuccess: (_, variables) => {
       // Invalidate specific password and list

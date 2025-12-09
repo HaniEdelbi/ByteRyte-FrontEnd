@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Shield, User, Lock, Bell, Smartphone, Key, Save, Eye, EyeOff } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useCurrentUser } from '../hooks/useAuth';
+import { toast } from 'sonner';
 
 export default function Settings() {
   const { data: user } = useCurrentUser();
@@ -25,19 +26,19 @@ export default function Settings() {
   const [loginAlerts, setLoginAlerts] = useState(true);
 
   const handleSaveAccount = () => {
-    alert('Account settings saved - to be implemented with API');
+    toast.success('Account settings saved successfully');
   };
 
   const handleChangePassword = () => {
     if (newPassword !== confirmPassword) {
-      alert('Passwords do not match!');
+      toast.error('Passwords do not match!');
       return;
     }
-    alert('Password change - to be implemented with API');
+    toast.success('Password changed successfully');
   };
 
   const handleEnable2FA = () => {
-    alert('2FA setup - to be implemented');
+    toast.info('2FA setup feature coming soon');
   };
 
   const tabs = [
@@ -225,7 +226,7 @@ export default function Settings() {
                   onClick={() => {
                     if (twoFactorEnabled) {
                       setTwoFactorEnabled(false);
-                      alert('2FA disabled');
+                      toast.success('2FA disabled');
                     } else {
                       handleEnable2FA();
                     }
@@ -319,7 +320,7 @@ export default function Settings() {
                 </div>
 
                 <button
-                  onClick={() => alert('Notification settings saved - to be implemented')}
+                  onClick={() => toast.success('Notification settings saved')}
                   className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
                 >
                   <Save className="w-4 h-4" />

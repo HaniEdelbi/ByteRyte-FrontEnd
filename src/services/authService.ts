@@ -4,6 +4,7 @@
  */
 
 import api, { auth } from '@/lib/api';
+import { initializeVaultKey, clearVaultKey, generateVaultKey, deriveKeyFromPassword } from './encryptionService';
 
 export interface LoginCredentials {
   email: string;
@@ -25,6 +26,10 @@ export interface AuthResponse {
     id: string;
     email: string;
     name: string;
+  };
+  vault?: {
+    id: string;
+    encryptedVaultKey: string;
   };
 }
 
@@ -66,30 +71,62 @@ async function generatePasswordVerifier(password: string, email: string): Promis
 
 /**
  * Generate encrypted vault key
- * In production, this would use proper key derivation
+ * Creates a random vault key and encrypts it with the user's password
  */
-async function generateEncryptedVaultKey(password: string): Promise<string> {
+async function generateEncryptedVaultKey(password: string, email: string): Promise<string> {
   try {
-    if (crypto?.subtle?.digest) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(password + 'vault-key-salt');
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    console.log('[authService] Generating encrypted vault key...');
+    
+    // Check if Web Crypto API is available
+    if (!crypto?.subtle) {
+      throw new Error('Web Crypto API not available. Please use HTTPS or localhost.');
     }
+    
+    // Generate a random 256-bit vault key
+    console.log('[authService] Generating random vault key...');
+    const vaultKey = await generateVaultKey();
+    console.log('[authService] Vault key generated');
+    
+    // Derive encryption key from user's password
+    console.log('[authService] Deriving encryption key from password...');
+    const cryptoKey = await deriveKeyFromPassword(password, email);
+    console.log('[authService] Encryption key derived');
+    
+    // Convert vault key from base64 to bytes
+    const vaultKeyBytes = Uint8Array.from(atob(vaultKey), c => c.charCodeAt(0));
+    
+    // Generate random IV
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    
+    // Encrypt the vault key
+    console.log('[authService] Encrypting vault key...');
+    const encryptedBuffer = await crypto.subtle.encrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv,
+      },
+      cryptoKey,
+      vaultKeyBytes
+    );
+    console.log('[authService] Vault key encrypted');
+    
+    // Combine IV and ciphertext
+    const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(encryptedBuffer), iv.length);
+    
+    // Return as base64
+    const result = btoa(String.fromCharCode(...combined));
+    console.log('[authService] Encrypted vault key generated successfully, length:', result.length);
+    return result;
   } catch (error) {
-    console.warn('crypto.subtle.digest not available, using fallback');
+    console.error('[authService] Failed to generate encrypted vault key:', error);
+    console.error('[authService] Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw new Error('Failed to generate encrypted vault key: ' + (error instanceof Error ? error.message : String(error)));
   }
-  
-  // Fallback
-  let hash = 0;
-  const str = password + 'vault-key-salt';
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16).padStart(32, '0');
 }
 
 /**
@@ -159,6 +196,28 @@ export const authService = {
     // Store token
     auth.setToken(response.token);
     
+    // Store vault information if present and initialize vault key
+    if (response.vault) {
+      localStorage.setItem('vaultId', response.vault.id);
+      localStorage.setItem('encryptedVaultKey', response.vault.encryptedVaultKey);
+      
+      // Decrypt and store vault key in memory for this session
+      try {
+        await initializeVaultKey(
+          response.vault.encryptedVaultKey,
+          credentials.password,
+          credentials.email
+        );
+      } catch (error) {
+        console.error('Failed to initialize vault key:', error);
+        // Continue login even if vault key initialization fails
+        // User can re-authenticate if needed
+      }
+    }
+    
+    // Store user information
+    localStorage.setItem('currentUser', JSON.stringify(response.user));
+    
     return response;
   },
 
@@ -168,7 +227,7 @@ export const authService = {
   async register(data: RegisterData): Promise<AuthResponse> {
     // Generate required zero-knowledge fields if not provided
     const passwordVerifier = data.passwordVerifier || await generatePasswordVerifier(data.password, data.email);
-    const encryptedVaultKey = data.encryptedVaultKey || await generateEncryptedVaultKey(data.password);
+    const encryptedVaultKey = data.encryptedVaultKey || await generateEncryptedVaultKey(data.password, data.email);
     const deviceFingerprint = data.deviceFingerprint || await generateDeviceFingerprint();
     
     const registrationData = {
@@ -186,6 +245,27 @@ export const authService = {
     // Store token
     auth.setToken(response.token);
     
+    // Store vault information if present and initialize vault key
+    if (response.vault) {
+      localStorage.setItem('vaultId', response.vault.id);
+      localStorage.setItem('encryptedVaultKey', response.vault.encryptedVaultKey);
+      
+      // Decrypt and store vault key in memory for this session
+      try {
+        await initializeVaultKey(
+          response.vault.encryptedVaultKey,
+          data.password,
+          data.email
+        );
+      } catch (error) {
+        console.error('Failed to initialize vault key:', error);
+        // Continue registration even if vault key initialization fails
+      }
+    }
+    
+    // Store user information
+    localStorage.setItem('currentUser', JSON.stringify(response.user));
+    
     return response;
   },
 
@@ -200,9 +280,14 @@ export const authService = {
       // Ignore logout endpoint errors - we'll clear local data anyway
       console.log('[authService] Logout endpoint error (ignoring):', error);
     } finally {
-      // Always remove token and user data, even if request fails
+      // Clear vault key from memory
+      clearVaultKey();
+      
+      // Always remove token, user data, and vault data, even if request fails
       auth.removeToken();
       localStorage.removeItem('currentUser');
+      localStorage.removeItem('vaultId');
+      localStorage.removeItem('encryptedVaultKey');
     }
   },
 

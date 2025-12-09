@@ -1,18 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, Eye, EyeOff, Copy, Edit2, Trash2, Shield, Lock, Globe, Mail, CreditCard, Key } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import AddPasswordModal from '../components/AddPasswordModal';
+import ReauthModal from '../components/ReauthModal';
+import { usePasswordsDecrypted, useDeletePassword } from '../hooks/usePasswords';
+import { hasVaultKey } from '../services/encryptionService';
+import { toast } from 'sonner';
 
-// Mock data - will be replaced with real API calls
-interface Password {
+// Interfaces for decrypted password data
+interface DecryptedPassword {
   id: string;
-  title: string;
-  username: string;
-  password: string;
-  website?: string;
+  vaultId: string;
   category: 'login' | 'payment' | 'secure-note' | 'other';
   favorite: boolean;
-  lastModified: string;
+  createdAt: string;
+  updatedAt: string;
+  decrypted: {
+    website: string;
+    username: string;
+    password: string;
+    notes?: string;
+  };
 }
 
 const categoryIcons = {
@@ -34,30 +43,41 @@ export default function Vault() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showPasswords, setShowPasswords] = useState<{ [key: string]: boolean }>({});
-  const [selectedPassword, setSelectedPassword] = useState<Password | null>(null);
+  const [selectedPassword, setSelectedPassword] = useState<DecryptedPassword | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [showReauth, setShowReauth] = useState(false);
+  const [vaultKeyReady, setVaultKeyReady] = useState(false);
 
-  // Mock passwords - replace with API call
-  const passwords: Password[] = [
-    {
-      id: '1',
-      title: 'Gmail',
-      username: 'user@gmail.com',
-      password: 'SecurePass123!',
-      website: 'https://gmail.com',
-      category: 'login',
-      favorite: true,
-      lastModified: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      title: 'Credit Card',
-      username: '4532 **** **** 1234',
-      password: '123',
-      category: 'payment',
-      favorite: false,
-      lastModified: new Date().toISOString(),
-    },
-  ];
+  // Check if vault key is initialized
+  useEffect(() => {
+    const checkVaultKey = () => {
+      if (hasVaultKey()) {
+        setVaultKeyReady(true);
+        setShowReauth(false);
+      } else {
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        const encryptedVaultKey = localStorage.getItem('encryptedVaultKey');
+        
+        if (token && encryptedVaultKey) {
+          // User is logged in but vault key not in memory - show reauth
+          setShowReauth(true);
+          setVaultKeyReady(false);
+        } else {
+          // User not logged in - redirect to login
+          navigate('/login');
+        }
+      }
+    };
+
+    checkVaultKey();
+  }, [navigate]);
+
+  // Fetch real passwords from API only when vault key is ready
+  const { data: passwordsData, isLoading, error } = usePasswordsDecrypted({ enabled: vaultKeyReady });
+  const deletePassword = useDeletePassword();
+  
+  const passwords = passwordsData || [];
 
   const togglePasswordVisibility = (id: string) => {
     setShowPasswords(prev => ({ ...prev, [id]: !prev[id] }));
@@ -65,12 +85,12 @@ export default function Vault() {
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
-    alert(`${field} copied to clipboard!`);
+    toast.success(`${field} copied to clipboard!`);
   };
 
   const filteredPasswords = passwords.filter(pwd => {
-    const matchesSearch = pwd.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         pwd.username.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = pwd.decrypted.website.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         pwd.decrypted.username.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || pwd.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -92,13 +112,41 @@ export default function Vault() {
             </p>
           </div>
           <button
-            onClick={() => alert('Add password modal - to be implemented')}
+            onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+            disabled={isLoading}
           >
             <Plus className="w-5 h-5" />
             Add Password
           </button>
         </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="glass-card p-12 text-center">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading your passwords...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="glass-card p-12 text-center">
+            <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2 text-red-500">Error Loading Passwords</h3>
+            <p className="text-muted-foreground mb-4">{error instanceof Error ? error.message : 'Failed to load passwords'}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Password List */}
+        {!isLoading && !error && (
+          <>
 
         {/* Search and Filters */}
         <div className="glass-card p-6 mb-6">
@@ -145,7 +193,7 @@ export default function Vault() {
                 : 'Start by adding your first password'}
             </p>
             <button
-              onClick={() => alert('Add password modal - to be implemented')}
+              onClick={() => setIsAddModalOpen(true)}
               className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
             >
               Add Your First Password
@@ -172,7 +220,7 @@ export default function Vault() {
 
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">{pwd.title}</h3>
+                          <h3 className="text-lg font-semibold">{pwd.decrypted.website}</h3>
                           {pwd.favorite && (
                             <span className="text-yellow-500">★</span>
                           )}
@@ -181,11 +229,11 @@ export default function Vault() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Mail className="w-4 h-4" />
-                            <span>{pwd.username}</span>
+                            <span>{pwd.decrypted.username}</span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                copyToClipboard(pwd.username, 'Username');
+                                copyToClipboard(pwd.decrypted.username, 'Username');
                               }}
                               className="p-1 hover:bg-muted rounded transition-colors"
                             >
@@ -196,7 +244,7 @@ export default function Vault() {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Lock className="w-4 h-4" />
                             <span className="font-mono">
-                              {isPasswordVisible ? pwd.password : '••••••••'}
+                              {isPasswordVisible ? pwd.decrypted.password : '••••••••'}
                             </span>
                             <button
                               onClick={(e) => {
@@ -214,7 +262,7 @@ export default function Vault() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                copyToClipboard(pwd.password, 'Password');
+                                copyToClipboard(pwd.decrypted.password, 'Password');
                               }}
                               className="p-1 hover:bg-muted rounded transition-colors"
                             >
@@ -222,20 +270,18 @@ export default function Vault() {
                             </button>
                           </div>
 
-                          {pwd.website && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Globe className="w-4 h-4" />
-                              <a
-                                href={pwd.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="hover:text-primary underline"
-                              >
-                                {pwd.website}
-                              </a>
-                            </div>
-                          )}
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Globe className="w-4 h-4" />
+                            <a
+                              href={pwd.decrypted.website.startsWith('http') ? pwd.decrypted.website : `https://${pwd.decrypted.website}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="hover:text-primary underline"
+                            >
+                              {pwd.decrypted.website}
+                            </a>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -245,7 +291,7 @@ export default function Vault() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          alert('Edit password - to be implemented');
+                          toast.info('Edit password feature coming soon');
                         }}
                         className="p-2 hover:bg-muted rounded-lg transition-colors"
                         title="Edit"
@@ -256,7 +302,7 @@ export default function Vault() {
                         onClick={(e) => {
                           e.stopPropagation();
                           if (confirm('Are you sure you want to delete this password?')) {
-                            alert('Delete password - to be implemented');
+                            toast.info('Delete password feature coming soon');
                           }
                         }}
                         className="p-2 hover:bg-destructive/10 text-destructive rounded-lg transition-colors"
@@ -288,7 +334,7 @@ export default function Vault() {
               <h3 className="font-semibold">Strong Passwords</h3>
             </div>
             <p className="text-3xl font-bold text-green-500">
-              {passwords.filter(p => p.password.length > 10).length}
+              {passwords.filter(p => p.decrypted.password.length > 10).length}
             </p>
           </div>
 
@@ -302,7 +348,27 @@ export default function Vault() {
             </p>
           </div>
         </div>
+        </>
+        )}
       </div>
+
+      {/* Add Password Modal */}
+      <AddPasswordModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+      />
+
+      {/* Reauth Modal */}
+      <ReauthModal
+        isOpen={showReauth}
+        onSuccess={() => {
+          setVaultKeyReady(true);
+          setShowReauth(false);
+        }}
+        onCancel={() => {
+          navigate('/login');
+        }}
+      />
     </div>
   );
 }

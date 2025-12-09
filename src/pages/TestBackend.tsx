@@ -1,27 +1,11 @@
 /**
  * Backend Test Page
- * Test authenticatio  const fetchVaultId = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const apiUrl = getApiUrl();
-      console.log('[TestBackend] Fetching vaults from:', `${apiUrl}/vaults`);
-      
-      const response = await fetch(`${apiUrl}/vaults`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();word management integration
+ * Test authentication and password management integration
  */
 
 import { useState, useEffect } from "react";
 import { useLogin, useRegister } from "@/hooks/useAuth";
+import { toast } from 'sonner';
 
 // Helper function to get API URL (same logic as api.ts)
 const getApiUrl = () => {
@@ -132,12 +116,12 @@ const TestBackend = () => {
     e.preventDefault();
     
     if (!vaultId) {
-      alert('No vault found. Please login again.');
+      toast.error('No vault found. Please login again.');
       return;
     }
 
     if (!testPasswordTitle || !testPasswordUsername || !testPasswordValue) {
-      alert('Please fill in Title, Username, and Password fields');
+      toast.error('Please fill in Title, Username, and Password fields');
       return;
     }
 
@@ -187,14 +171,14 @@ const TestBackend = () => {
         throw new Error(result.message || 'Failed to create password');
       }
 
-      alert("Password created successfully!");
+      toast.success("Password created successfully!");
       setTestPasswordTitle("");
       setTestPasswordValue("");
       setTestPasswordUsername("");
       setTestPasswordNotes("");
       fetchPasswords(vaultId);
     } catch (error: any) {
-      alert(`Failed to create password: ${error.message}`);
+      toast.error(`Failed to create password: ${error.message}`);
     }
   };
 
@@ -222,7 +206,7 @@ const TestBackend = () => {
         { email, password, name: name || email.split('@')[0] },
         {
           onSuccess: (data: any) => {
-            alert("✅ Registration successful! Now logging in...");
+            toast.success("Registration successful! Now logging in...");
             if (data.token) {
               localStorage.setItem('authToken', data.token);
               setIsRegistering(false);
@@ -232,7 +216,7 @@ const TestBackend = () => {
           onError: (error: any) => {
             console.error("Registration error:", error);
             const errorMsg = error.message || JSON.stringify(error);
-            alert(`❌ Registration failed: ${errorMsg}`);
+            toast.error(`Registration failed: ${errorMsg}`);
           }
         }
       );
@@ -241,13 +225,13 @@ const TestBackend = () => {
         { email, password },
         {
           onSuccess: () => {
-            alert("✅ Login successful!");
+            toast.success("Login successful!");
             fetchVaultId();
           },
           onError: (error: any) => {
             console.error("Login error:", error);
             const errorMsg = error.message || JSON.stringify(error);
-            alert(`❌ Login failed: ${errorMsg}`);
+            toast.error(`Login failed: ${errorMsg}`);
           }
         }
       );
