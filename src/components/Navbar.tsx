@@ -107,9 +107,9 @@ const Navbar = () => {
           <Link to="/" className="nav-link">
             Home
           </Link>
-          <a href="#features" onClick={handleFeaturesClick} className="nav-link cursor-pointer">Features</a>
+          {!user && <a href="#features" onClick={handleFeaturesClick} className="nav-link cursor-pointer">Features</a>}
           <Link to="/pricing" className="nav-link">Pricing</Link>
-          <Link to="/test" className="nav-link">Challenge</Link>
+          {user && <Link to="/vault" className="nav-link">Vault</Link>}
           
           {user ? (
             <ProfileDropdown />
@@ -167,16 +167,6 @@ const Navbar = () => {
             }}
           >
             Pricing
-          </Link>
-          <Link 
-            to="/test" 
-            className="text-xl font-medium py-3 px-6 w-full text-center rounded-xl hover:bg-muted transition-colors" 
-            onClick={() => {
-              setIsMenuOpen(false);
-              document.body.style.overflow = '';
-            }}
-          >
-            Challenge
           </Link>
 
           {user ? (

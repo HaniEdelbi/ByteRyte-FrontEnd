@@ -1,5 +1,6 @@
-import { useActiveSessions } from '../hooks/useSession';
-import { Monitor, Smartphone, Tablet, Shield, Clock, AlertCircle } from 'lucide-react';
+import { useDevices, useRevokeDevice } from '../hooks/useSession';
+import { Monitor, Smartphone, Tablet, Shield, Clock, AlertCircle, Trash2 } from 'lucide-react';
+import Navbar from '../components/Navbar';
 
 /**
  * Parse user agent to determine device type and browser info
@@ -58,19 +59,36 @@ const formatRelativeTime = (timestamp: string) => {
 };
 
 export default function Sessions() {
-  const { data: sessions, isLoading, error } = useActiveSessions();
+  const { data: devices, isLoading, error } = useDevices();
+  const revokeDevice = useRevokeDevice();
+
+  // Debug logging
+  console.log('Sessions Page - Loading:', isLoading);
+  console.log('Sessions Page - Error:', error);
+  console.log('Sessions Page - Devices:', devices);
+
+  const handleRevokeDevice = async (deviceId: string, deviceName: string) => {
+    if (confirm(`Are you sure you want to revoke access for "${deviceName}"? You'll need to log in again on that device.`)) {
+      try {
+        await revokeDevice.mutateAsync(deviceId);
+      } catch (error) {
+        alert(`Failed to revoke device: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+  };
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 py-20 px-4">
-      <div className="container max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5">
+      <Navbar />
+      <div className="container max-w-4xl mx-auto px-4 py-24">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Shield className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold">Active Sessions</h1>
+            <h1 className="text-3xl font-bold">Devices & Sessions</h1>
           </div>
           <p className="text-muted-foreground">
-            Manage your active sessions across all devices. Sessions are automatically created when you log in.
+            Manage all devices using your email. View device information and revoke access to specific devices.
           </p>
         </div>
 
@@ -88,27 +106,30 @@ export default function Sessions() {
         )}
 
         {/* Error State */}
-        {error && (
+        {error && !isLoading && (
           <div className="glass-card p-6 border border-red-500/20 bg-red-500/5">
             <div className="flex items-center gap-3 mb-2">
               <AlertCircle className="w-5 h-5 text-red-500" />
-              <h3 className="text-lg font-semibold text-red-500">Failed to load sessions</h3>
+              <h3 className="text-lg font-semibold text-red-500">Failed to load devices</h3>
             </div>
             <p className="text-sm text-muted-foreground">{error.message}</p>
           </div>
         )}
 
-        {/* Sessions List */}
-        {sessions && sessions.length > 0 && (
+        {/* Devices List */}
+        {!isLoading && !error && devices && devices.length > 0 && (
           <div className="space-y-4">
-            {sessions.map((session, index) => {
-              const { deviceIcon: DeviceIcon, browser, os, deviceType } = parseUserAgent(session.userAgent);
-              const isCurrentSession = index === 0; // Assume first session is current
+            {devices.map((device) => {
+              // Use backend-provided browser/os or fallback to default icon
+              const deviceIcon = device.os?.toLowerCase().includes('android') || device.os?.toLowerCase().includes('ios') 
+                ? Smartphone 
+                : Monitor;
+              const DeviceIcon = deviceIcon;
               
               return (
                 <div 
-                  key={session.id} 
-                  className={`glass-card p-6 ${isCurrentSession ? 'border-2 border-primary shadow-xl' : ''}`}
+                  key={device.id} 
+                  className={`glass-card p-6 ${device.isCurrentDevice ? 'border-2 border-primary shadow-xl' : ''}`}
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-4">
@@ -118,18 +139,30 @@ export default function Sessions() {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold flex items-center gap-2">
-                          {session.name ? session.name : `${browser} on ${os}`}
-                          {isCurrentSession && (
+                          {device.name}
+                          {device.isCurrentDevice && (
                             <span className="px-2 py-1 text-xs font-medium bg-primary text-primary-foreground rounded-full">
                               Current
                             </span>
                           )}
                         </h3>
-                        <p className="text-sm text-muted-foreground capitalize">
-                          {session.name ? `${deviceType} · ${browser} · ${os}` : `${deviceType} device`}
+                        <p className="text-sm text-muted-foreground">
+                          {device.browser} · {device.os}
                         </p>
                       </div>
                     </div>
+                    
+                    {/* Revoke Button */}
+                    {!device.isCurrentDevice && (
+                      <button
+                        onClick={() => handleRevokeDevice(device.id, device.name)}
+                        disabled={revokeDevice.isPending}
+                        className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors disabled:opacity-50"
+                        title="Revoke this device"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
                   </div>
                   
                   {/* Details */}
@@ -138,27 +171,25 @@ export default function Sessions() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Shield className="w-4 h-4" />
                       <span className="font-mono text-xs">
-                        {session.fingerprint.substring(0, 16)}...
+                        {device.fingerprint.substring(0, 16)}...
                       </span>
                     </div>
                     
-                    {/* Created At */}
+                    {/* IP Address */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Monitor className="w-4 h-4" />
+                      <span>
+                        IP: {device.ipAddress}
+                      </span>
+                    </div>
+                    
+                    {/* Last Seen */}
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="w-4 h-4" />
                       <span>
-                        Active since {formatRelativeTime(session.createdAt)}
+                        Last seen {formatRelativeTime(device.lastSeen)}
                       </span>
                     </div>
-                    
-                    {/* User Agent (collapsed) */}
-                    <details className="text-xs text-muted-foreground">
-                      <summary className="cursor-pointer hover:text-foreground">
-                        Show technical details
-                      </summary>
-                      <pre className="mt-2 p-3 bg-black/20 rounded-lg text-[10px] overflow-x-auto">
-                        {session.userAgent}
-                      </pre>
-                    </details>
                   </div>
                 </div>
               );
@@ -167,12 +198,12 @@ export default function Sessions() {
         )}
 
         {/* Empty State */}
-        {sessions && sessions.length === 0 && (
+        {!isLoading && !error && devices && devices.length === 0 && (
           <div className="glass-card p-8 text-center">
             <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Active Sessions</h3>
+            <h3 className="text-lg font-semibold mb-2">No Devices Found</h3>
             <p className="text-muted-foreground">
-              You don't have any active sessions. This page will show all devices where you're logged in.
+              You don't have any registered devices. Devices are automatically registered when you log in.
             </p>
           </div>
         )}
@@ -184,10 +215,10 @@ export default function Sessions() {
             <h3 className="font-semibold text-primary">Security Information</h3>
           </div>
           <ul className="text-sm text-muted-foreground space-y-2">
-            <li>• Sessions are automatically created when you log in from any device</li>
-            <li>• Each session is identified by a unique device fingerprint</li>
-            <li>• Logging out will destroy your session on that device</li>
-            <li>• Sessions persist until you explicitly log out</li>
+            <li>• Devices are automatically registered when you log in with your email</li>
+            <li>• Each device is identified by a unique device fingerprint</li>
+            <li>• You can revoke access to any device except your current one</li>
+            <li>• Revoking a device will require re-authentication on that device</li>
           </ul>
         </div>
       </div>

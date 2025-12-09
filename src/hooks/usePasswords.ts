@@ -8,24 +8,23 @@ import { passwordService, CreatePasswordData, UpdatePasswordData } from '@/servi
 import { showNotification } from '@/hooks/use-notification';
 
 /**
- * Hook to get all passwords for a vault
+ * Hook to get all passwords across all vaults
  */
-export function usePasswords(vaultId: string) {
+export function usePasswords() {
   return useQuery({
-    queryKey: ['passwords', vaultId],
-    queryFn: () => passwordService.getAll(vaultId),
-    enabled: !!vaultId,
+    queryKey: ['passwords'],
+    queryFn: () => passwordService.getAll(),
   });
 }
 
 /**
  * Hook to get a single password
  */
-export function usePassword(vaultId: string, id: string) {
+export function usePassword(id: string) {
   return useQuery({
-    queryKey: ['passwords', vaultId, id],
-    queryFn: () => passwordService.getById(vaultId, id),
-    enabled: !!id && !!vaultId,
+    queryKey: ['passwords', id],
+    queryFn: () => passwordService.getById(id),
+    enabled: !!id,
   });
 }
 
@@ -63,12 +62,12 @@ export function useUpdatePassword() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ vaultId, id, data }: { vaultId: string; id: string; data: UpdatePasswordData }) =>
-      passwordService.update(vaultId, id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdatePasswordData }) =>
+      passwordService.update(id, data),
     onSuccess: (_, variables) => {
       // Invalidate specific password and list
-      queryClient.invalidateQueries({ queryKey: ['passwords', variables.vaultId, variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['passwords', variables.vaultId] });
+      queryClient.invalidateQueries({ queryKey: ['passwords', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['passwords'] });
       
       showNotification({
         title: 'Password updated',
@@ -92,10 +91,10 @@ export function useDeletePassword() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ vaultId, id }: { vaultId: string; id: string }) => passwordService.delete(vaultId, id),
-    onSuccess: (_, variables) => {
+    mutationFn: ({ id }: { id: string }) => passwordService.delete(id),
+    onSuccess: () => {
       // Invalidate passwords list
-      queryClient.invalidateQueries({ queryKey: ['passwords', variables.vaultId] });
+      queryClient.invalidateQueries({ queryKey: ['passwords'] });
       
       showNotification({
         title: 'Password deleted',

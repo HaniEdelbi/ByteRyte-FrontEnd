@@ -18,7 +18,7 @@ const PlatformShowcase = () => {
         <div className="rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl mx-auto max-w-4xl animate-on-scroll border border-border">
           <div className="w-full bg-card">
             <img 
-              src="/byteryte-uploads/dashboard-preview.png" 
+              src="/byteryte-uploads/Security.png" 
               alt="ByteRyte password wallet dashboard interface" 
               className="w-full h-auto object-cover"
             />

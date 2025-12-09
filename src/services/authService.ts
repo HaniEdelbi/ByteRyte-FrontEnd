@@ -144,7 +144,17 @@ export const authService = {
    * Login user
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
+    // Generate password verifier for login
+    const passwordVerifier = await generatePasswordVerifier(credentials.password, credentials.email);
+    const deviceFingerprint = await generateDeviceFingerprint();
+    
+    const loginData = {
+      email: credentials.email,
+      passwordVerifier,
+      deviceFingerprint,
+    };
+    
+    const response = await api.post<AuthResponse>('/auth/login', loginData);
     
     // Store token
     auth.setToken(response.token);
@@ -163,7 +173,6 @@ export const authService = {
     
     const registrationData = {
       email: data.email,
-      password: data.password,
       name: data.name,
       passwordVerifier,
       encryptedVaultKey,
